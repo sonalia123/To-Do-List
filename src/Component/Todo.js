@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import EmailShare from './EmailShare';
 
 export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggered }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -46,7 +47,13 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
   };
 
   const handleSave = () => {
-    editTodo(task.id, editedTaskData.task, editedTaskData.date, editedTaskData.time, alarmTime);
+    editTodo(
+      task.id,
+      editedTaskData.task,
+      editedTaskData.date,
+      editedTaskData.time,
+      alarmTime
+    );
     setIsEditing(false);
   };
 
@@ -61,13 +68,6 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
     }
   };
 
-  const handleSnooze = () => {
-    const snoozeTime = new Date(alarmTime);
-    snoozeTime.setMinutes(snoozeTime.getMinutes() + 1);
-    setAlarmTime(snoozeTime);
-    setIsEditing(false);
-  };
-
   return (
     <div className="Todo">
       {isEditing ? (
@@ -77,26 +77,15 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
             value={editedTaskData.task}
             onChange={(e) => setEditedTaskData({ ...editedTaskData, task: e.target.value })}
           />
-          <input
-            type="date"
-            value={editedTaskData.date}
-            onChange={handleEditDate}
-          />
-          <input
-            type="time"
-            value={editedTaskData.time}
-            onChange={handleEditTime}
-          />
+          <input type="date" value={editedTaskData.date} onChange={handleEditDate} />
+          <input type="time" value={editedTaskData.time} onChange={handleEditTime} />
           <button onClick={handleSetAlarm}>Set Alarm</button>
           <button onClick={handleSave}>Save</button>
           <button onClick={handleToggleEditing}>Cancel</button>
         </>
       ) : (
         <>
-          <p
-            onClick={() => toggleComplete(task.id)}
-            className={`${task.completed ? 'completed' : ''}`}
-          >
+          <p onClick={() => toggleComplete(task.id)} className={`${task.completed ? 'completed' : ''}`}>
             {task.task}
           </p>
           <p>Date: {task.date}</p>
@@ -105,7 +94,7 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
           <div>
             <button onClick={handleToggleEditing}>Edit</button>
             <button onClick={() => deleteTodo(task.id)}>Delete</button>
-            {alarmTriggered && alarmTime && <button onClick={handleSnooze}>Snooze</button>}
+            <EmailShare task={task} />
           </div>
         </>
       )}

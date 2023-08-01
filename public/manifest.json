@@ -1,0 +1,25 @@
+{
+  "name": "Todo List App",
+  "short_name": "Todo List",
+  "description": "A simple todo list application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3f51b5",
+  "orientation": "portrait",
+  "scope": "/",
+  "dir": "ltr",
+  "lang": "en-US",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "serviceworker": {
+    "src": "./service-worker.js",
+    "scope": "/"
+  },
+  "sounds": [
+    {
+      "src": "audioSound.mp3",
+      "type": "audio/mpeg"
+    }
+  ]
+}

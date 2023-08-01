@@ -1,0 +1,104 @@
+body.dark-mode {
+  background: #121212;
+}
+
+.TodoWrapper.dark-mode {
+  background: #222;
+  color: #fff;
+}
+
+.Todo.dark-mode {
+  background: #363636;
+  color: #fff;
+}
+
+h1 {
+  background: #1a237e;
+  border-color: #fff;
+}
+
+.TodoForm.dark-mode {
+  background: #363636;
+  color: #fff;
+}
+
+.TodoForm.dark-mode .todo-input,
+.TodoForm.dark-mode .todo-date,
+.TodoForm.dark-mode .todo-time {
+  background: #363636;
+  border-color: #1a237e;
+  color: #fff;
+}
+
+.TodoForm.dark-mode .todo-input::placeholder,
+.TodoForm.dark-mode .todo-date::placeholder,
+.TodoForm.dark-mode .todo-time::placeholder {
+  color: #888;
+}
+
+.TodoForm.dark-mode .Todo-btn,
+.TodoForm.dark-mode .Todo-btn-cancel,
+.TodoForm.dark-mode .Todo-btn-add {
+  background: #1a237e;
+  color: #fff;
+}
+
+.Todo.dark-mode button:hover {
+  background: #fff;
+  color: #1a237e;
+}
+
+.Todo.dark-mode input {
+  background: #222;
+  border-color: #1a237e;
+  color: #fff;
+}
+
+.Todo.dark-mode input[type='date']::placeholder,
+.Todo.dark-mode input[type='time']::placeholder {
+  color: #888;
+}
+
+.Todo.dark-mode p.alarm {
+  color: #888;
+}
+
+.TodoForm.edit-form.dark-mode {
+  background: #363636;
+  color: #fff;
+}
+
+.TodoForm.edit-form.dark-mode .todo-input,
+.TodoForm.edit-form.dark-mode .todo-date,
+.TodoForm.edit-form.dark-mode .todo-time {
+  background: #363636;
+  border-color: #1a237e;
+  color: #fff;
+}
+
+.TodoForm.edit-form.dark-mode .Todo-btn-container {
+  margin-top: 0.5rem;
+}
+
+.Todo.dark-mode .alarm-buttons {
+  background: #222;
+  color: #fff;
+}
+
+.Todo.dark-mode button:hover {
+  background: #1a237e;
+}
+
+.switch-mode-btn {
+  background: #fff;
+  color: #1a237e;
+}
+
+.switch-mode-btn:hover {
+  background: #f2f2f2;
+  color: #1a237e;
+}
+.dark-mode {
+  background-color: #1a1a1a;
+  color: #fff;
+}
