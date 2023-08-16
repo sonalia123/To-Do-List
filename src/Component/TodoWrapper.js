@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TodoForm } from './TodoForm';
 import { v4 as uuidv4 } from 'uuid';
 import { Todo } from './Todo';
@@ -9,12 +9,16 @@ const ALARM_SOUND_URL = '/audioSound.mp3';
 export const TodoWrapper = () => {
   const [todos, setTodos] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
-  const [alarmTriggered, setAlarmTriggered] = useState(false);
+  const [closestTask, setClosestTask] = useState('');
+  const [alarmTriggered, setAlarmTriggered] = useState(null);
   const [isAlarmPlaying, setIsAlarmPlaying] = useState(false);
   const audioRef = useRef(null);
-  const alarmIntervalRef = useRef(null);
-  const alarmDateTime = useRef(null);
-  
+  const alarmIntervalsMap = useRef(new Map());
+  const alarmDateTimeMap = useRef(new Map());
+  const [snoozeActive, setSnoozeActive] = useState(false);
+  const [snoozeTimeout, setSnoozeTimeout] = useState(null);
+  const [showTasks, setShowTasks] = useState(false);
+
 
   useEffect(() => {
     console.log('Fetching todos from localStorage...');
@@ -27,32 +31,16 @@ export const TodoWrapper = () => {
     if (darkModePreference !== null) {
       setDarkMode(darkModePreference);
     }
-
-    const alarmDataFromLocalStorage = JSON.parse(localStorage.getItem('alarmData'));
-    if (alarmDataFromLocalStorage) {
-      const { alarmDateTime: storedAlarmDateTime, alarmTriggered: storedAlarmTriggered, isAlarmPlaying: storedIsAlarmPlaying } = alarmDataFromLocalStorage;
-      alarmDateTime.current = storedAlarmDateTime;
-      setAlarmTriggered(storedAlarmTriggered);
-      setIsAlarmPlaying(storedIsAlarmPlaying);
-    }
   }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode((prevDarkMode) => !prevDarkMode);
+  };
 
   useEffect(() => {
     console.log('Saving todos to localStorage...');
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
-
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  useEffect(() => {
-    localStorage.setItem('alarmData', JSON.stringify({ alarmDateTime: alarmDateTime.current, alarmTriggered, isAlarmPlaying }));
-  }, [alarmTriggered, isAlarmPlaying]);
-
-  const toggleDarkMode = () => {
-    setDarkMode((prevDarkMode) => !prevDarkMode);
-  };
 
   const saveToLocalStorage = (todos) => {
     localStorage.setItem('todos', JSON.stringify(todos));
@@ -79,58 +67,166 @@ export const TodoWrapper = () => {
     saveToLocalStorage([...todos, { task: todo, time: time, date: date }]);
   };
 
-  const handleAlarmEnded = () => {
-    console.log('Alarm ended');
-    setAlarmTriggered(false);
-    setIsAlarmPlaying(false);
+  const handleAlarmEnded = (id) => {
+    console.log(`Alarm for task ${id} ended`);
+    if (isAlarmPlaying && alarmTriggered === id) {
+      handleStopAlarm();
+    }
+    if (snoozeActive && snoozeTimeout.id === id) {
+      setSnoozeActive(false);
+    }
   };
-
+  
   const handleStopAlarm = () => {
     console.log('Stopping alarm');
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-    setAlarmTriggered(false);
+    setAlarmTriggered(null);
     setIsAlarmPlaying(false);
+    if (snoozeActive) {
+      setSnoozeActive(false);
+    }
   };
 
-  const handleSnooze = () => {
-    console.log('Snoozing alarm');
+  const handleSnooze = (id) => {
+    console.log(`Snoozing alarm for task ${id}`);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     setIsAlarmPlaying(false);
-    setAlarmTriggered(false);
-
-    setTimeout(() => {
+  
+    if (snoozeTimeout) {
+      clearTimeout(snoozeTimeout.timeout);
+    }
+  
+    const snoozeTaskItem = todos.find((todo) => todo.id === id);
+    const snoozeTaskName = snoozeTaskItem ? snoozeTaskItem.task : '';
+  
+    const newSnoozeTimeout = setTimeout(() => {
       const audio = new Audio(ALARM_SOUND_URL);
-      audio.addEventListener('ended', handleAlarmEnded);
+      audio.addEventListener('ended', () => handleAlarmEnded(id));
       audioRef.current = audio;
       audio
         .play()
         .then(() => {
           console.log('Snooze audio played successfully');
-          setAlarmTriggered(true);
           setIsAlarmPlaying(true);
+          recalculateClosestTask([...todos, { id: id, task: snoozeTaskName, date: '', time: '' }]);
         })
         .catch((error) => {
           console.error('Error playing snooze audio:', error);
-          setAlarmTriggered(false);
           setIsAlarmPlaying(false);
         });
-    }, 60 * 1000);
+    }, 60000); 
+  
+    setSnoozeTimeout({
+      id: id,
+      timeout: newSnoozeTimeout,
+      endTime: moment().add(1, 'minute'),
+      timeRemaining: 60000,
+      taskName: snoozeTaskName,
+    });
+  
+    setSnoozeActive(true);
+    setClosestTask(`${snoozeTaskName}: Snooze for 1 min`);
   };
+  
+  
+  
+  const recalculateClosestTask = useCallback(() => {
+    let closestTimeRemaining = Infinity;
+    let closestTaskName = '';
+    let closestTaskTimeRemaining = '';
+  
+    todos.forEach((todo) => {
+      if (!todo.completed) {
+        const currentTime = moment();
+        const taskTime = moment(`${todo.date} ${todo.time}`, 'YYYY-MM-DD HH:mm');
+        const timeRemaining = taskTime.diff(currentTime, 'milliseconds');
+  
+        if (timeRemaining > 0 && timeRemaining < closestTimeRemaining) {
+          closestTimeRemaining = timeRemaining;
+          closestTaskName = todo.task;
+          closestTaskTimeRemaining = `${Math.floor(timeRemaining / 3600000)}h ${Math.floor(
+            (timeRemaining % 3600000) / 60000
+          )}m ${Math.floor((timeRemaining % 60000) / 1000)}s`;
+        }
+      }
+    });
+  
+    if (snoozeTimeout && snoozeActive) {
+      closestTaskName = snoozeTimeout.taskName;
+      closestTaskTimeRemaining = `Snooze for 1 min`;
+    } else if (closestTimeRemaining === Infinity) {
+      closestTaskName = '';
+      closestTaskTimeRemaining = '';
+    }
+  
+    setClosestTask(closestTaskName !== '' ? `${closestTaskName}: ${closestTaskTimeRemaining}` : '');
+  }, [todos, snoozeTimeout, snoozeActive]);
+  
+
+  useEffect(() => {
+    console.log('Calculating closest task remaining time...');
+    recalculateClosestTask([...todos]);
+
+    const intervalId = setInterval(() => {
+      recalculateClosestTask([...todos]);
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [todos, snoozeTimeout, snoozeActive, recalculateClosestTask]);
 
   const toggleComplete = (id) => {
     setTodos((prevTodos) =>
       prevTodos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo))
     );
+
+    if (isAlarmPlaying && alarmTriggered === id) {
+      handleStopAlarm();
+    }
+
+    clearInterval(alarmIntervalsMap.current.get(id));
+    alarmIntervalsMap.current.delete(id);
+    alarmDateTimeMap.current.delete(id);
+
+    if (snoozeTimeout && snoozeTimeout.id === id) {
+      clearTimeout(snoozeTimeout.timeout);
+      setSnoozeTimeout(null);
+    }
+
+    recalculateClosestTask(todos.filter((todo) => todo.id !== id));
+
+    saveToLocalStorage(todos.filter((todo) => todo.id !== id));
   };
 
   const deleteTodo = (id) => {
+    if (isAlarmPlaying && alarmTriggered === id) {
+      handleStopAlarm();
+    }
+
+    clearInterval(alarmIntervalsMap.current.get(id));
+    alarmIntervalsMap.current.delete(id);
+    alarmDateTimeMap.current.delete(id);
+
+    if (snoozeTimeout && alarmTriggered === id) {
+      clearTimeout(snoozeTimeout.timeout);
+    }
+
+    if (snoozeTimeout && snoozeTimeout.id === id) {
+      clearTimeout(snoozeTimeout.timeout);
+      setSnoozeTimeout(null);
+    }
+
     setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
+
+    recalculateClosestTask(todos.filter((todo) => todo.id !== id));
+
     saveToLocalStorage(todos.filter((todo) => todo.id !== id));
   };
 
@@ -146,40 +242,38 @@ export const TodoWrapper = () => {
       updatedAlarmDateTime = moment(`${editedDate} ${editedTime}`, 'YYYY-MM-DD HH:mm');
       const timeRemaining = updatedAlarmDateTime.diff(moment(), 'milliseconds');
 
-      if (alarmIntervalRef.current) {
-        clearInterval(alarmIntervalRef.current);
-      }
+      clearInterval(alarmIntervalsMap.current.get(id));
 
       if (updatedAlarmDateTime.isValid() && timeRemaining > 0) {
-        setAlarmTriggered(false);
-        setIsAlarmPlaying(false);
+        alarmIntervalsMap.current.set(
+          id,
+          setInterval(() => {
+            const currentTime = moment();
+            const timeRemaining = updatedAlarmDateTime.diff(currentTime, 'milliseconds');
 
-        alarmIntervalRef.current = setInterval(() => {
-          const currentTime = moment();
-          const timeRemaining = updatedAlarmDateTime.diff(currentTime, 'milliseconds');
-
-          if (timeRemaining <= 0 && !alarmTriggered) {
-            const audio = new Audio(ALARM_SOUND_URL);
-            audio.addEventListener('ended', handleAlarmEnded);
-            audioRef.current = audio;
-            audio
-              .play()
-              .then(() => {
-                console.log('Audio played successfully');
-                setAlarmTriggered(true);
-                setIsAlarmPlaying(true);
-                clearInterval(alarmIntervalRef.current);
-              })
-              .catch((error) => {
-                console.error('Error playing audio:', error);
-                setAlarmTriggered(false);
-                setIsAlarmPlaying(false);
-              });
-          }
-        }, 1000);
+            if (timeRemaining <= 0 && !isAlarmPlaying) {
+              const audio = new Audio(ALARM_SOUND_URL);
+              audio.addEventListener('ended', () => handleAlarmEnded(id));
+              audioRef.current = audio;
+              audio
+                .play()
+                .then(() => {
+                  console.log(`Audio for task ${id} played successfully`);
+                  setAlarmTriggered(id);
+                  setIsAlarmPlaying(true);
+                  clearInterval(alarmIntervalsMap.current.get(id));
+                })
+                .catch((error) => {
+                  console.error('Error playing audio:', error);
+                  setAlarmTriggered(null);
+                  setIsAlarmPlaying(false);
+                });
+            }
+          }, 1000)
+        );
       }
     } else {
-      setAlarmTriggered(false);
+      clearInterval(alarmIntervalsMap.current.get(id));
       setIsAlarmPlaying(false);
       if (audioRef.current) {
         audioRef.current.pause();
@@ -187,25 +281,16 @@ export const TodoWrapper = () => {
       }
     }
 
-    alarmDateTime.current = updatedAlarmDateTime;
+    alarmDateTimeMap.current.set(id, updatedAlarmDateTime);
     saveToLocalStorage(
       todos.map((todo) =>
         todo.id === id ? { ...todo, task: editedTask, date: editedDate, time: editedTime, alarmTime } : todo
       )
     );
-
-    saveAlarmDataToLocalStorage(updatedAlarmDateTime, alarmTriggered, isAlarmPlaying);
   };
 
-  const saveAlarmDataToLocalStorage = (alarmDateTime, alarmTriggered, isAlarmPlaying) => {
-    localStorage.setItem(
-      'alarmData',
-      JSON.stringify({
-        alarmDateTime,
-        alarmTriggered,
-        isAlarmPlaying,
-      })
-    );
+  const handleViewTasks = () => {
+    setShowTasks(!showTasks);
   };
 
   console.log('Rendering TodoWrapper component...');
@@ -214,28 +299,38 @@ export const TodoWrapper = () => {
     <div className={`TodoWrapper ${darkMode ? 'dark-mode' : ''}`}>
       <div className="menu-bar">
         <h1>My To-Do List</h1>
-        <button className="dark-mode-button" onClick={toggleDarkMode}>
-          {darkMode ? 'Light Mode' : 'Dark Mode'}
-        </button>
+        {closestTask && (
+        <p className="remaining-time">
+          {closestTask}
+          </p>
+        )}
       </div>
-      <TodoForm addTodo={addTodo} />
-      {todos.map((todo) => (
-        <Todo
-          task={todo}
-          key={todo.id}
-          toggleComplete={toggleComplete}
-          deleteTodo={deleteTodo}
-          editTodo={editTodo}
-          alarmTriggered={alarmTriggered}
-        />
-      ))}
-      {isAlarmPlaying && (
+      <TodoForm
+        addTodo={addTodo}
+        showTasks={showTasks}
+        handleViewTasks={handleViewTasks}
+        toggleDarkMode={toggleDarkMode}
+        darkMode={darkMode}
+      />
+      {showTasks &&
+        todos.map((todo) => (
+          <Todo
+            task={todo}
+            key={todo.id}
+            toggleComplete={toggleComplete}
+            deleteTodo={deleteTodo}
+            editTodo={editTodo}
+            alarmTriggered={alarmTriggered}
+            handleSnooze={() => handleSnooze(todo.id)} // Pass handleSnooze function to Todo component
+          />
+        ))}
+      {showTasks && isAlarmPlaying && (
         <div className="alarm-buttons">
           <button className="Todo-btn" onClick={handleStopAlarm}>
             Stop Alarm
           </button>
           {alarmTriggered && (
-            <button className="Todo-btn" onClick={handleSnooze}>
+            <button className="Todo-btn" onClick={() => handleSnooze(alarmTriggered)}>
               Snooze for 1 min
             </button>
           )}

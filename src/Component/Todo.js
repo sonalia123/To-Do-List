@@ -91,10 +91,10 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
           <p>Date: {task.date}</p>
           <p>Time: {task.time}</p>
           {alarmTime && <p>Alarm: {alarmTime.toLocaleString()}</p>}
-          <div>
-            <button onClick={handleToggleEditing}>Edit</button>
-            <button onClick={() => deleteTodo(task.id)}>Delete</button>
-            <EmailShare task={task} />
+          <div className="Todo-buttons-container">
+            <button className="Todo-button" onClick={handleToggleEditing}>Edit</button>
+            <button className="Todo-button" onClick={() => deleteTodo(task.id)}>Delete</button>
+            <EmailShare className="Todo-button" task={task} />
           </div>
         </>
       )}

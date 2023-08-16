@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export const TodoForm = ({ addTodo }) => {
+export const TodoForm = ({ addTodo, showTasks, handleViewTasks, toggleDarkMode, darkMode }) => {
   const [value, setValue] = useState('');
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
@@ -21,7 +21,7 @@ export const TodoForm = ({ addTodo }) => {
         type="text"
         className="todo-input"
         value={value}
-        placeholder="What is the task today?"
+        placeholder="Add the task"
         onChange={(e) => setValue(e.target.value)}
       />
       <input
@@ -40,6 +40,12 @@ export const TodoForm = ({ addTodo }) => {
       />
       <button type="submit" className="Todo-btn-add">
         Add Task
+      </button>
+      <button className="Todo-btn" onClick={handleViewTasks}>
+        {showTasks ? 'Hide Tasks' : 'View Tasks'}
+      </button>
+      <button className="dark-mode-button" onClick={toggleDarkMode}>
+        {darkMode ? 'Light Mode' : 'Dark Mode'}
       </button>
     </form>
   );
