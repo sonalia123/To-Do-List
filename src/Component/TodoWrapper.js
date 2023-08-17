@@ -96,7 +96,6 @@ export const TodoWrapper = () => {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-    setAlarmTriggered(null);
     setIsAlarmPlaying(false);
   
     if (snoozeTimeout) {
