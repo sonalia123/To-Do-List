@@ -102,50 +102,52 @@ export const TodoWrapper = () => {
   };
 
   // Handle snoozing the alarm
-  const handleSnooze = (id) => {
-    // Puse the alarm audio and set snooze timeout
-    console.log(`Snoozing alarm for task ${id}`);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsAlarmPlaying(false);
-  
-    if (snoozeTimeout) {
-      clearTimeout(snoozeTimeout.timeout);
-    }
-  
-    const snoozeTaskItem = todos.find((todo) => todo.id === id);
-    const snoozeTaskName = snoozeTaskItem ? snoozeTaskItem.task : '';
-  
-    const newSnoozeTimeout = setTimeout(() => {
+const handleSnooze = (id) => {
+  // Pause the alarm audio and set snooze timeout
+  console.log(`Snoozing alarm for task ${id}`);
+  if (audioRef.current) {
+    audioRef.current.removeEventListener('ended', handleAlarmEnded);
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+  }
+  setIsAlarmPlaying(false);
+
+  if (snoozeTimeout) {
+    clearTimeout(snoozeTimeout.timeout);
+  }
+
+  const snoozeTaskItem = todos.find((todo) => todo.id === id);
+  const snoozeTaskName = snoozeTaskItem ? snoozeTaskItem.task : '';
+
+  const newSnoozeTimeout = setTimeout(async () => {
+    try {
       const audio = new Audio(ALARM_SOUND_URL);
-      audio.addEventListener('ended', () => handleAlarmEnded(id));
       audioRef.current = audio;
-      audio
-        .play()
-        .then(() => {
-          console.log('Snooze audio played successfully');
-          setIsAlarmPlaying(true);
-          recalculateClosestTask([...todos, { id: id, task: snoozeTaskName, date: '', time: '' }]);
-        })
-        .catch((error) => {
-          console.error('Error playing snooze audio:', error);
-          setIsAlarmPlaying(false);
-        });
-    }, 60000); 
-  
-    setSnoozeTimeout({
-      id: id,
-      timeout: newSnoozeTimeout,
-      endTime: moment().add(1, 'minute'),
-      timeRemaining: 60000,
-      taskName: snoozeTaskName,
-    });
-  
-    setSnoozeActive(true);
-    setClosestTask(`${snoozeTaskName}: Snooze for 1 min`);
-  };
+      audio.addEventListener('ended', () => handleAlarmEnded(id));
+
+      await audio.play();
+      console.log('Snooze audio played successfully');
+
+      setIsAlarmPlaying(true);
+      recalculateClosestTask([...todos, { id: id, task: snoozeTaskName, date: '', time: '' }]);
+    } catch (error) {
+      console.error('Error playing snooze audio:', error);
+      setIsAlarmPlaying(false);
+    }
+  }, 60000);
+
+  setSnoozeTimeout({
+    id: id,
+    timeout: newSnoozeTimeout,
+    endTime: moment().add(1, 'minute'),
+    timeRemaining: 60000,
+    taskName: snoozeTaskName,
+  });
+
+  setSnoozeActive(true);
+  setClosestTask(`${snoozeTaskName}: Snooze for 1 min`);
+};
+
 
   // Recalculate the closest task with remaining time 
   const recalculateClosestTask = useCallback(() => {
