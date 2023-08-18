@@ -14,7 +14,7 @@ const EmailShare = ({ task }) => {
     <div className="EmailShare">
       <button onClick={handleShareEmail}>
         <i className="Envelope" aria-hidden="true"></i>
-        Share Email
+        Share Via Email
       </button>
     </div>
   );
