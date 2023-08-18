@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import EmailShare from './EmailShare';
 
+// Todo component displays and manages a single task
 export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggered }) => {
+  
+  // State to track whether the task is being edited
   const [isEditing, setIsEditing] = useState(false);
+  
+  // State to hold edited task data
   const [editedTaskData, setEditedTaskData] = useState({
     task: '',
     date: '',
     time: '',
   });
+
+   // State to hold the alarm time
   const [alarmTime, setAlarmTime] = useState('');
 
+  // Effect to update state when task prop changes
   useEffect(() => {
     if (task.alarmTime) {
       setAlarmTime(new Date(task.alarmTime));
@@ -21,9 +29,12 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
     });
   }, [task]);
 
+  // Toggle editing mode
   const handleToggleEditing = () => {
     setIsEditing(!isEditing);
     if (!isEditing) {
+
+      // Restore original task data when canceling edit
       setEditedTaskData({
         task: task.task,
         date: task.date,
@@ -32,6 +43,7 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
     }
   };
 
+  // Handle editing the date
   const handleEditDate = (e) => {
     setEditedTaskData({
       ...editedTaskData,
@@ -39,6 +51,7 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
     });
   };
 
+  // Handle editing the time
   const handleEditTime = (e) => {
     setEditedTaskData({
       ...editedTaskData,
@@ -46,7 +59,10 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
     });
   };
 
+  // Handle saving the edited task
   const handleSave = () => {
+
+    // Call the editTodo function from the parent component
     editTodo(
       task.id,
       editedTaskData.task,
@@ -54,9 +70,10 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
       editedTaskData.time,
       alarmTime
     );
-    setIsEditing(false);
+    setIsEditing(false); // Exit editing mode
   };
 
+  // Handle setting an alarm for the task
   const handleSetAlarm = () => {
     const selectedDateTime = new Date(`${editedTaskData.date}T${editedTaskData.time}`);
     const now = new Date();
@@ -68,6 +85,7 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
     }
   };
 
+   // Render the Todo component
   return (
     <div className="Todo">
       {isEditing ? (
@@ -83,7 +101,7 @@ export const Todo = ({ task, toggleComplete, deleteTodo, editTodo, alarmTriggere
           <button onClick={handleSave}>Save</button>
           <button onClick={handleToggleEditing}>Cancel</button>
         </>
-      ) : (
+      ) : ( // Render task details when not in edit mode
         <>
           <p onClick={() => toggleComplete(task.id)} className={`${task.completed ? 'completed' : ''}`}>
             {task.task}
